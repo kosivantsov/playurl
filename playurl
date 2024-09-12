@@ -1,0 +1,204 @@
+#!/bin/bash
+
+bold=$(tput bold)
+normal=$(tput sgr0)
+
+conf_file=$HOME/.config/playurl.conf
+if [ ! -f $conf_file ]; then
+    mkdir -p $HOME/.config
+    touch $conf_file
+fi
+
+PlaylistFile=/tmp/playurl.pls
+SaveDir=$HOME/Music/playurlplaylists
+ytdl=$(which yt-dlp)
+if [ -z "$ytdl" ]; then
+    ytdl=youtube-dl
+fi
+
+ytdl="$ytdl --no-warnings"
+no_player_message() {
+    PLAYER="${1}"
+    if [ -z "$PLAYER" ]; then
+        echo
+        echo "Player is not set. To set it, run:"
+        echo "  ${bold}$(basename $0)$normal PLAYER"
+        exit 0
+    fi
+}
+case "$1" in
+    "mpv"|"mplayer"|"smplayer"|"vlc"|"iina")
+        PLAYER="$1"
+        shift 1
+        if [ -z "$1" ]; then
+            echo "PLAYER=${PLAYER}" > $conf_file
+        fi
+        ;;
+
+    "report" )
+        eval $(cat $conf_file)
+        PLAYERNAME=$(echo "$PLAYER" | tr '-' ' ' |awk '{print $1}')
+        no_player_message $PLAYERNAME
+        echo Player: ${bold}$PLAYERNAME${normal}
+        exit 0
+        ;;
+
+    "save" )
+        if [ ! -e $PlaylistFile ]; then
+            echo "Playlist file doesn't exist, can't save"
+            exit 2
+        else
+            if [ ! -d $SaveDir ]; then
+                mkdir -p $SaveDir
+            fi
+            cp $PlaylistFile $SaveDir/$(date +%Y%m%d%H%M%S)$(basename $PlaylistFile)
+            exit 0
+        fi
+        ;;
+
+   ""|"help")
+        echo -e "${bold}Usage${normal}:"
+        echo "  ${bold}$(basename $0)${normal} [PLAYER] [OPTIONS] URL"
+        echo
+        echo "  This script plays media from a provided URL using a specified media player."
+        echo "  YouTube videos are played as audio-only."
+        echo "  YouTube playlists may take longer to parse as each video URL has to be resolved."
+        echo
+        echo "${bold}Options${normal}:"
+        echo "  PLAYER   Specify the media player to use (mvp, vlc, etc.)"
+        echo "           Specified player is saved in the config file"
+        echo "  save     Save the playlist with the specified URL to a file"
+        echo "  report   Print the name of the selected player"
+        echo "  help     Display this help message"
+        echo
+        echo "${bold}Examples${normal}:"
+        echo "  $(basename "$0") mpv"
+        echo "           to set mpv as the default player"
+        echo "  $(basename "$0") https://example.com/video"
+        echo "           to play the URL with the default player"
+        echo "  $(basename "$0") vlc https://example.com/video"
+        echo "           to play the URL with vlc and set it as the default player"
+        exit 0
+        ;;
+    * )
+        eval $(cat $conf_file)
+        echo Provided location: ${bold}"$@"${normal}
+        ;;
+esac
+
+if [ "$2" ]; then
+    shift 1
+fi
+
+if [ -e "$@" ] ; then
+    url="$@"
+else
+    if [ "$(echo $@|grep "http")" ]; then
+        url=$(echo "$@" | grep http |sed 's/^.*http/http/g'|sed 's/ .*$//g')
+        # This will be the list that will have either the YouTube actual stream URL, or the downloaded playlist file
+        # Let's find if it's a youtube url
+        declare -a ytaddress=("youtube.com" "youtu.be")
+        urlcheck=$(echo "$url"|sed -e 's/https*:\/\///g' | sed -e 's/\/.*$//g'|sed -e 's/www.//g')
+        if [[ "${ytaddress[@]}" =~ "$urlcheck" ]]; then
+        echo "[playlist]" > $PlaylistFile
+        urls=$url
+        count=1
+            if [[ "$url" =~ "list=" ]]; then
+                echo -e "Provided url is a ${bold}YouTube playlist${normal}. This may take a while."
+                urls="$($ytdl -j --flat-playlist $url|jq -r .url)"
+            fi
+            for url in $(echo -e "${urls}"); do
+                total=$(echo -e "${urls}"|wc -l|xargs)
+                PossibleStreams=$($ytdl -F $url)
+                AudioStream=$(echo "$PossibleStreams" | grep "audio only" | tail -1|awk '{print $1}')
+                if [ -z "$AudioStream" ]; then
+                    echo "Couldn't define audio-only part. Video stream will be used."
+                    AudioStream=$(echo "$PossibleStreams" | sed '1,/^format code/d' | head -1 | awk '{print $1}')
+                fi
+                StreamURL=$($ytdl --get-url -f $AudioStream $url)
+                StreamFile=$($ytdl --get-filename -f $AudioStream $url)
+                StreamTitle=$(echo ${StreamFile%.*} | sed -e 's/\-[[:alnum:]]*$//g')
+                echo "File$count="$StreamURL"" >> $PlaylistFile
+                echo "Title$count="$StreamTitle"" >> $PlaylistFile
+                echo "Added $count out of $total"
+                ((count=count+1))
+            done
+            echo "NumberOfEntries=$((count-1))" >> $PlaylistFile
+            url=$PlaylistFile
+        else
+            ### Check the server's reply while trying to reach the URL
+            reply="$(curl -s -m 1 -D - -o /dev/null "$url")"
+
+            ### Check if the url is a binary stream
+            if [ -z "$reply" ]; then
+                export probeFile=/tmp/tmpPlay
+                curl -s -o ${probeFile} "$url" &
+                sleep 2
+                probePID=$(ps aux | grep "curl" | grep "${url}" | awk '{print $2}')
+                ## do the killing in a subshell so it doesn't output noise in the working terminal
+                killPID=$(kill -9 "$probePID" > /dev/null 2>&1 &)
+                fileType=$(file $probeFile)
+                if [ -f $probeFile ]; then
+                    rm $probeFile
+                fi
+                if [[ "$(echo $fileType)" =~ "MPEG" ]]; then
+                    reply="200"
+                fi
+            fi
+
+            ### Checking if it's a valid url (or a binary stream without a header)
+            if [ ! "$(echo "$reply"|head -1|grep "200")" ]; then
+                echo "URL is invalid"
+                exit 3
+            else
+                ### If the url is valid, we need to check if the file is a playlist, and if so, get the playable stream from it
+                type=$(echo "$reply"|grep "Content-Type: "|sed 's/Content-Type: //g'|tr -d '[:space:]')
+                declare -a playlists=("audio/x-mpegurl" "audio/x-scpls")
+                if [[ "${playlists[@]}" =~ "${type}" ]]; then
+                    echo "This is a playlist, grabbing the first URL"
+                    # url="$(curl -s "$url" | grep http |sed 's/^.*http/http/g' | sed 's/ .*$//g' | head -1)"
+                    curl -s "$url" > $PlaylistFile
+                    url=$PlaylistFile
+                fi
+            fi
+        fi
+        echo Playing location: ${bold}"$url"${normal}
+    else
+        echo "Provided location can't be played"
+        exit 22
+    fi
+fi
+
+PLAYERNAME=$(echo "$PLAYER" | tr '-' ' ' |awk '{print $1}')
+
+case "$PLAYERNAME" in
+    "vlc" )
+        PLAYER="$(which vlc) --no-video"
+        if [ "$(pgrep VLC)" ]; then
+            killall VLC
+        fi
+        ;;
+    "mpv" )
+        PLAYER="$(which mpv) --no-video"
+        ;;
+esac
+
+echo Player: ${bold}$PLAYERNAME${normal}
+if [ -z "$url" ] ; then
+    echo "Nothing to play"
+    exit 5
+fi
+
+echo "$PLAYER "$url""
+if [[ "$PLAYER" =~ "iina" ]]; then
+    PLAYER="$(which iina)"
+    if [[ "$(pgrep IINA)" ]]; then
+        killall IINA
+        sleep 0.5
+    fi
+    open /Applications/IINA.app --args "${url}"
+else
+    nohup $PLAYER "${url}" > /dev/null 2>&1 &
+fi
+
+exit 0
