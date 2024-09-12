@@ -189,6 +189,8 @@ if [ -z "$url" ] ; then
     exit 5
 fi
 
+no_player_message "${PLAYERNAME}"
+
 echo "$PLAYER "$url""
 if [[ "$PLAYER" =~ "iina" ]]; then
     PLAYER="$(which iina)"
