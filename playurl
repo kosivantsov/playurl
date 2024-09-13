@@ -66,7 +66,7 @@ case "$1" in
         echo
         echo "${bold}Options${normal}:"
         echo "  PLAYER   Specify the media player to use (mvp, vlc, etc.)"
-        echo "           Specified player is saved in the config file"
+        echo "           If specified without an URL, player is saved as default"
         echo "  save     Save the playlist with the specified URL to a file"
         echo "  report   Print the name of the selected player"
         echo "  help     Display this help message"
@@ -77,7 +77,7 @@ case "$1" in
         echo "  $(basename "$0") https://example.com/video"
         echo "           to play the URL with the default player"
         echo "  $(basename "$0") vlc https://example.com/video"
-        echo "           to play the URL with vlc and set it as the default player"
+        echo "           to play the URL with vlc withou setting it as the default player"
         exit 0
         ;;
     * )
