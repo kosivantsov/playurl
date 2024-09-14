@@ -1,4 +1,14 @@
 #!/bin/bash
+# Author: Kos Ivantsov
+# License: GPLv3
+# Date: 2024-09-01
+#
+# This script determines a playable part in a URL passed to the script,
+# stores it in a temporary playlist, and passes the playlist to the selected music player.
+# For YouTube links, it tries to determine an audio-only format, and makes it possible
+# to play audio from YouTube videos with players that don't support it natively.
+# YouTube playlists may take some time to be processed.
+# A local path can be passed instead of an URL.
 
 bold=$(tput bold)
 normal=$(tput sgr0)
@@ -93,7 +103,7 @@ case "$1" in
         echo "  PLAYER      Specify the media player to use (mvp, vlc, etc.)"
         echo "              "
         echo "  set PLAYER  "
-        echo "  save        Save the playlist with the specified URL to a file"
+        echo "  save        Save playlist with the specified URL to a file"
         echo "  report      Print the name of the selected player"
         echo "  help        Display this help message"
         echo
