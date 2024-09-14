@@ -40,7 +40,7 @@ echo_selected_player() {
     echo "Player: ${bold}${PLAYER}${normal}"
 }
 case "$1" in
-   "iina"|"mocp"|"mpv"|"mplayer"|"smplayer"|"vlc")
+   "iina"|"mocp"|"mpv"|"mplayer"|"nvlc"|"smplayer"|"vlc")
         PLAYER="$1"
         no_player_message "${PLAYER}"
         shift 1
