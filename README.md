@@ -42,7 +42,7 @@ Usage:
 Options:
   PLAYER      Specify the media player to use (mvp, vlc, etc.)
               
-  set PLAYER  Set PLAYER as the default
+  set PLAYER  Set PLAYER as the default player
   save        Save playlist with the specified URL to a file
   report      Print the name of the selected player
   help        Display this help message
