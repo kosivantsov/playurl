@@ -13,7 +13,7 @@ Local paths could be used instead of URLs.
   `apt install jq`  
   `brew install jq`
 - **curl**  
-  `apt install curl` to install on Debian GNU/Linux
+  `apt install curl` to install on Debian GNU/Linux  
   macOS ships with `curl` installed
 
 Other tools and commands used in script which should be included in any default installation: `awk`, `basename`, `cp`, `date`, `file`, `grep`, `kill`, `killall`, `mkdir`, `nohup`, `pgrep`, `ps`, `sed`, `touch`, `tput`, `tr`, `wc`, `which`, `xargs`.
