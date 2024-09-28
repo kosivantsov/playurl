@@ -29,3 +29,29 @@ chmod +x playurl
 ```
 
 For convenience, place it somewhere in your `$PATH`.
+
+## Usage
+```bash
+Usage:
+  playurl [PLAYER] [OPTIONS] [URL]
+
+  This script plays media from a provided URL using a specified media player.
+  YouTube videos are played as audio-only.
+  YouTube playlists may take longer to parse as each video URL has to be resolved.
+
+Options:
+  PLAYER      Specify the media player to use (mvp, vlc, etc.)
+              
+  set PLAYER  Set PLAYER as the default
+  save        Save playlist with the specified URL to a file
+  report      Print the name of the selected player
+  help        Display this help message
+
+Examples:
+  playurl set mpv
+           to set mpv as the default player
+  playurl https://example.com/video
+           to play the URL with the default player
+  playurl vlc https://example.com/video
+           to play the URL with vlc without setting it as the default player
+```
