@@ -18,8 +18,8 @@ Local paths could be used instead of URLs.
 
 Other tools and commands used in script which should be included in any default installation: `awk`, `basename`, `cp`, `date`, `file`, `grep`, `kill`, `killall`, `mkdir`, `nohup`, `pgrep`, `ps`, `sed`, `touch`, `tput`, `tr`, `wc`, `which`, `xargs`.
 
-Supported players: IINA, MOC, mpv, mplayer, SMPlayer, VLC, nvlc. These can temporarely override the user-defined default player, which can be any player, not only the one from the list (it should be able to accept URLs as arguments).  
-On macOS the script has been tested only with players installed with Homebrew. 
+Supported players: IINA, MOC, mpv, mplayer, SMPlayer, VLC, nvlc. These can temporarely override the user-defined default player. The list of the supported players is not exclusive. Any player can be used as long as it's able to accept URLs/paths as arguments.  
+On macOS the script has been tested only with players installed via Homebrew. 
 
 ## Installation
 No installation is needed. Just download it and make it the script executable:
